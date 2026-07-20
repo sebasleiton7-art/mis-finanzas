@@ -1,0 +1,655 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Mis Finanzas</title>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+:root {
+  --fondo: #F3F5F2; --tinta: #17251E; --gris: #66756C; --linea: #DCE3DD;
+  --carta: #FFFFFF; --verde: #1E5943; --rojo: #B5432C; --azul: #2F4B7C;
+}
+* { box-sizing: border-box; margin: 0; }
+body {
+  min-height: 100vh; background: var(--fondo); color: var(--tinta);
+  font-family: 'Archivo', system-ui, sans-serif;
+}
+.app { padding: 24px clamp(14px, 4vw, 48px) 60px; max-width: 1000px; margin: 0 auto; }
+
+.top { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; flex-wrap: wrap; margin-bottom: 20px; }
+.eyebrow { font-size: 12px; letter-spacing: .14em; text-transform: uppercase; color: var(--gris); font-weight: 600; }
+h1 { font-size: clamp(26px, 4vw, 34px); font-weight: 800; letter-spacing: -.02em; }
+.top-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.mes-nav { display: flex; align-items: center; gap: 4px; background: var(--carta); border: 1px solid var(--linea); border-radius: 10px; padding: 4px; }
+.mes-nav span { font-weight: 600; padding: 0 10px; min-width: 132px; text-align: center; font-size: 14px; }
+.mes-nav button { border: none; background: none; font-size: 20px; width: 32px; height: 32px; border-radius: 8px; cursor: pointer; color: var(--tinta); }
+.mes-nav button:hover { background: var(--fondo); }
+
+.sync {
+  display: inline-flex; align-items: center; gap: 7px; font-size: 13px; font-weight: 600;
+  background: var(--carta); border: 1px solid var(--linea); border-radius: 10px; padding: 9px 14px; color: var(--gris);
+}
+.sync .punto { width: 9px; height: 9px; border-radius: 50%; background: #C9CFC9; }
+.sync.ok .punto { background: var(--verde); }
+.sync.trabajando .punto { background: #D99A2B; animation: pulso 1s infinite; }
+.sync.error .punto { background: var(--rojo); }
+@keyframes pulso { 50% { opacity: .3; } }
+.btn-config { border: 1px solid var(--linea); background: var(--carta); border-radius: 10px; width: 38px; height: 38px; cursor: pointer; font-size: 16px; }
+.btn-config:hover { background: var(--fondo); }
+
+.ledger {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 1px; background: var(--linea); border: 1px solid var(--linea);
+  border-radius: 14px; overflow: hidden; margin-bottom: 22px;
+}
+.ledger-item { background: var(--carta); padding: 14px 16px; }
+.ledger-item.balance { background: var(--tinta); }
+.ledger-item.balance .ledger-label, .ledger-item.balance .ledger-monto { color: #F3F5F2 !important; }
+.ledger-label { font-size: 11px; letter-spacing: .12em; text-transform: uppercase; font-weight: 600; margin-bottom: 6px; }
+.ledger-monto { font-family: 'IBM Plex Mono', monospace; font-size: 17px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.ledger-monto.usd { font-size: 13px; color: var(--gris); margin-top: 2px; }
+
+.tabs { display: flex; gap: 6px; border-bottom: 2px solid var(--linea); margin-bottom: 18px; }
+.tab {
+  border: none; background: none; font-family: inherit; font-size: 15px; font-weight: 600;
+  padding: 10px 18px; cursor: pointer; color: var(--gris);
+  border-bottom: 3px solid transparent; margin-bottom: -2px;
+}
+.tab.activa { color: var(--c); border-bottom-color: var(--c); }
+
+.cuerpo { display: flex; flex-direction: column; gap: 16px; }
+.card { background: var(--carta); border: 1px solid var(--linea); border-radius: 14px; padding: 18px 20px; }
+.card h2 { font-size: 17px; margin-bottom: 14px; }
+.card h3 { font-size: 14px; text-transform: uppercase; letter-spacing: .08em; color: var(--gris); margin-bottom: 12px; }
+.form { border-top: 4px solid var(--c); }
+.fila { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; }
+label, .campo { display: flex; flex-direction: column; gap: 5px; font-size: 13px; font-weight: 600; color: var(--gris); flex: 1; min-width: 140px; }
+label.ancho, .campo.ancho { flex: 2; min-width: 200px; }
+input, select {
+  font-family: inherit; font-size: 15px; color: var(--tinta);
+  border: 1px solid var(--linea); border-radius: 9px; padding: 9px 11px; background: #FAFBFA; width: 100%;
+}
+input:focus, select:focus { outline: 2px solid var(--c, var(--verde)); border-color: var(--c, var(--verde)); }
+input[type="number"] { font-family: 'IBM Plex Mono', monospace; }
+
+.toggle { display: flex; background: #FAFBFA; border: 1px solid var(--linea); border-radius: 9px; padding: 3px; gap: 3px; flex-wrap: wrap; }
+.toggle button {
+  flex: 1; border: none; background: none; font-family: inherit; font-size: 13px; font-weight: 600;
+  padding: 7px 8px; border-radius: 7px; cursor: pointer; color: var(--gris); white-space: nowrap;
+}
+.toggle button.sel { background: var(--c, var(--verde)); color: #fff; }
+
+.acciones { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.btn-principal {
+  background: var(--c, var(--verde)); color: #fff; border: none; border-radius: 10px;
+  padding: 11px 26px; font-family: inherit; font-size: 15px; font-weight: 600; cursor: pointer;
+}
+.btn-principal:disabled { opacity: .4; cursor: not-allowed; }
+.btn-sec { background: none; border: 1px solid var(--linea); border-radius: 10px; padding: 10px 16px; font-family: inherit; font-size: 14px; font-weight: 600; color: var(--tinta); cursor: pointer; }
+.btn-sec:hover { background: var(--fondo); }
+
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip {
+  display: flex; align-items: center; gap: 8px; background: var(--fondo);
+  border: 1px solid var(--linea); border-radius: 999px; padding: 6px 13px; font-size: 13px;
+}
+.chip strong { font-family: 'IBM Plex Mono', monospace; font-size: 12.5px; font-variant-numeric: tabular-nums; }
+
+.lista { list-style: none; display: flex; flex-direction: column; padding: 0; }
+.lista li { display: flex; align-items: center; gap: 14px; padding: 11px 4px; border-bottom: 1px solid var(--linea); }
+.lista li:last-child { border-bottom: none; }
+.mov-fecha { font-family: 'IBM Plex Mono', monospace; font-weight: 600; font-size: 16px; min-width: 52px; }
+.mov-fecha small { color: var(--gris); font-size: 11px; }
+.mov-info { flex: 1; min-width: 0; }
+.mov-cat { font-weight: 600; font-size: 14.5px; }
+.mov-nota { font-size: 13px; color: var(--gris); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mov-persona {
+  display: inline-block; font-size: 11px; font-weight: 600; color: var(--gris);
+  background: var(--fondo); border: 1px solid var(--linea); border-radius: 999px; padding: 1px 8px; margin-left: 6px; vertical-align: 2px;
+}
+.mov-monto { font-family: 'IBM Plex Mono', monospace; font-weight: 600; font-size: 15.5px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.mov-btns { display: flex; gap: 4px; }
+.mov-btns button { border: none; background: none; cursor: pointer; font-size: 14px; width: 30px; height: 30px; border-radius: 8px; color: var(--gris); }
+.mov-btns button:hover { background: var(--fondo); color: var(--tinta); }
+
+.vacio { color: var(--gris); font-size: 14px; padding: 10px 0; }
+.pie { margin-top: 26px; font-size: 12.5px; color: var(--gris); line-height: 1.5; max-width: 680px; }
+
+/* Panel de configuración */
+.setup { max-width: 620px; margin: 40px auto; }
+.setup ol { padding-left: 20px; line-height: 1.8; font-size: 14.5px; margin: 12px 0 18px; }
+.setup .fila-url { display: flex; gap: 8px; flex-wrap: wrap; }
+.setup input { flex: 1; min-width: 240px; }
+.aviso { font-size: 13px; margin-top: 10px; font-weight: 600; }
+.aviso.err { color: var(--rojo); }
+.aviso.ok { color: var(--verde); }
+
+.oculto { display: none !important; }
+.cargando-pantalla { display: grid; place-items: center; min-height: 60vh; color: var(--gris); }
+
+/* Selección de perfil */
+.perfiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+.perfil-btn {
+  border: 1px solid var(--linea); background: #FAFBFA; border-radius: 12px;
+  padding: 18px 12px; font-family: inherit; font-size: 16px; font-weight: 600;
+  color: var(--tinta); cursor: pointer; text-align: center;
+}
+.perfil-btn:hover { border-color: var(--verde); background: #EDF3EF; }
+.usuario-pill {
+  display: inline-flex; align-items: center; gap: 7px; font-size: 13px; font-weight: 600;
+  background: var(--carta); border: 1px solid var(--linea); border-radius: 10px; padding: 9px 14px; color: var(--tinta);
+}
+.usuario-pill button { border: none; background: none; cursor: pointer; font-size: 12px; color: var(--gris); padding: 0; font-family: inherit; text-decoration: underline; }
+
+@media (max-width: 560px) {
+  .ledger { grid-template-columns: 1fr 1fr; }
+  .mov-btns { flex-direction: column; }
+}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- PANTALLA DE PERFIL: ¿quién sos? -->
+  <div id="perfil-screen" class="card setup oculto">
+    <div class="eyebrow">Bienvenido</div>
+    <h2 style="margin:6px 0 4px">¿Quién sos?</h2>
+    <p style="font-size:14px;color:var(--gris);margin:6px 0 16px">
+      Elegí tu nombre. Este dispositivo lo va a recordar y solo vas a ver tus propios movimientos.
+    </p>
+    <div class="perfiles" id="perfiles"></div>
+  </div>
+
+  <!-- PANTALLA DE PIN -->
+  <div id="pin-screen" class="card setup oculto">
+    <div class="eyebrow" id="pin-eyebrow">Seguridad</div>
+    <h2 style="margin:6px 0 4px" id="pin-titulo"></h2>
+    <p style="font-size:14px;color:var(--gris);margin:6px 0 16px" id="pin-texto"></p>
+    <div class="fila" style="max-width:420px">
+      <label>PIN (4 a 6 dígitos)
+        <input type="password" id="pin-1" inputmode="numeric" maxlength="6" placeholder="••••" autocomplete="off" />
+      </label>
+      <label id="pin-2-wrap">Confirmá el PIN
+        <input type="password" id="pin-2" inputmode="numeric" maxlength="6" placeholder="••••" autocomplete="off" />
+      </label>
+    </div>
+    <div class="acciones">
+      <button class="btn-principal" style="--c: var(--verde)" id="pin-btn" onclick="confirmarPin()">Continuar</button>
+      <button class="btn-sec" onclick="mostrar('perfil-screen')">Volver</button>
+    </div>
+    <div id="pin-aviso" class="aviso"></div>
+  </div>
+
+  <!-- PANTALLA DE CONFIGURACIÓN -->
+  <div id="setup" class="card setup oculto">
+    <div class="eyebrow">Configuración inicial</div>
+    <h2 style="margin:6px 0 4px">Conectar con tu Google Sheet</h2>
+    <ol>
+      <li>Creá un Google Sheet nuevo (ej: <strong>Mis Finanzas</strong>).</li>
+      <li>En el Sheet: <strong>Extensiones → Apps Script</strong>.</li>
+      <li>Pegá el código del archivo <em>codigo-google-apps-script.txt</em> y guardá.</li>
+      <li><strong>Implementar → Nueva implementación → Aplicación web</strong>. Ejecutar como: <em>Yo</em>. Acceso: <em>Cualquier persona</em>.</li>
+      <li>Autorizá los permisos y copiá la URL que termina en <code>/exec</code>.</li>
+    </ol>
+    <div class="fila-url">
+      <input id="input-url" type="url" placeholder="https://script.google.com/macros/s/…/exec" />
+      <button class="btn-principal" style="--c: var(--verde)" onclick="guardarURL()">Conectar</button>
+    </div>
+    <div id="setup-aviso" class="aviso"></div>
+  </div>
+
+  <!-- PANTALLA DE CARGA -->
+  <div id="cargando" class="cargando-pantalla oculto">Cargando tus datos desde Google Sheets…</div>
+
+  <!-- APP PRINCIPAL -->
+  <div id="principal" class="oculto">
+    <header class="top">
+      <div>
+        <div class="eyebrow">Control personal</div>
+        <h1>Mis Finanzas</h1>
+      </div>
+      <div class="top-actions">
+        <span class="usuario-pill">👤 <span id="usuario-nombre"></span> <button onclick="cambiarPerfil()">cambiar</button></span>
+        <div class="mes-nav">
+          <button onclick="cambiarMes(-1)" aria-label="Mes anterior">‹</button>
+          <span id="mes-label"></span>
+          <button onclick="cambiarMes(1)" aria-label="Mes siguiente">›</button>
+        </div>
+        <div id="sync" class="sync"><span class="punto"></span><span id="sync-texto">Conectando…</span></div>
+        <button class="btn-config" title="Cambiar URL del Sheet" onclick="abrirConfig()">⚙</button>
+      </div>
+    </header>
+
+    <section class="ledger" id="ledger"></section>
+
+    <nav class="tabs" id="tabs"></nav>
+
+    <main class="cuerpo">
+      <section class="card form" id="form-card">
+        <h2 id="form-titulo"></h2>
+        <div class="fila">
+          <label>Fecha <input type="date" id="f-fecha" /></label>
+          <label>Monto <input type="number" id="f-monto" inputmode="decimal" min="0" placeholder="0" /></label>
+          <div class="campo">
+            <span>Moneda</span>
+            <div class="toggle" id="f-moneda">
+              <button data-v="CRC" class="sel">₡ Colones</button>
+              <button data-v="USD">$ Dólares</button>
+            </div>
+          </div>
+        </div>
+        <div class="fila">
+          <label class="ancho"><span id="cat-label">Tipo</span>
+            <select id="f-categoria"></select>
+          </label>
+          <label class="ancho">Nota (opcional)
+            <input type="text" id="f-nota" placeholder="Ej: almuerzo con compañeros" />
+          </label>
+        </div>
+        <div class="acciones">
+          <button class="btn-principal" id="btn-agregar" onclick="agregar()">Agregar</button>
+          <button class="btn-sec oculto" id="btn-cancelar" onclick="limpiarForm()">Cancelar</button>
+          <button class="btn-sec oculto" id="btn-salario" onclick="repetirSalario()">↻ Repetir último salario</button>
+        </div>
+      </section>
+
+      <section class="card oculto" id="chips-card">
+        <h3 id="chips-titulo"></h3>
+        <div class="chips" id="chips"></div>
+      </section>
+
+      <section class="card">
+        <h3 id="lista-titulo"></h3>
+        <p class="vacio oculto" id="vacio"></p>
+        <ul class="lista" id="lista"></ul>
+      </section>
+    </main>
+
+    <footer class="pie">
+      Cada movimiento se guarda automáticamente en tu Google Sheet (hojas Gastos, Ingresos e Inversiones).
+      Conectá Power BI directamente al Sheet y actualizá cuando quieras: los datos siempre estarán al día.
+    </footer>
+  </div>
+</div>
+
+<script>
+// ---------- Configuración ----------
+const CATEGORIAS = {
+  gastos: [
+    ["comida","🍽️ Comida diaria"],["supermercado","🛒 Supermercado"],["salidas","🍻 Salidas / Restaurantes"],
+    ["cine","🎬 Cine / Entretenimiento"],["ropa","👕 Ropa y calzado"],["electronicos","💻 Electrónicos"],
+    ["regalos","🎁 Regalos"],["corte","💈 Corte de pelo"],["gimnasio","🏋️ Gimnasio"],
+    ["jiujitsu","🥋 Academia de Jiu-Jitsu"],["vacaciones","🏖️ Vacaciones / Viajes"],["gasolina","⛽ Gasolina"],
+    ["carro","🚗 Carro (mantenimiento, marchamo)"],["casa","🏠 Casa / Alquiler"],
+    ["servicios","💡 Servicios (luz, agua, internet)"],["celular","📱 Celular / Plan"],
+    ["suscripciones","📺 Suscripciones (streaming, apps)"],["salud","⚕️ Salud / Farmacia"],
+    ["educacion","📚 Educación / Cursos"],["transporte","🚕 Transporte / Uber"],["mascotas","🐾 Mascotas"],
+    ["banco","🏦 Comisiones / Intereses"],["otros","📦 Otros"]
+  ],
+  ingresos: [
+    ["salario","💼 Salario"],["aguinaldo","🎄 Aguinaldo"],["freelance","🧑‍💻 Freelance / Extra"],
+    ["bono","⭐ Bono / Comisión"],["reembolso","↩️ Reembolso"],["venta","🏷️ Venta de algo"],
+    ["rendimiento","📈 Rendimiento de inversión"],["otros","📦 Otros"]
+  ],
+  inversiones: [
+    ["cdp","🏦 CDP / Plazo fijo"],["fondos","📊 Fondos de inversión"],["acciones","📈 Acciones / ETFs"],
+    ["cripto","🪙 Cripto"],["pension","👴 Pensión voluntaria"],["bienes","🏢 Bienes raíces"],
+    ["ahorro","🐷 Ahorro programado"],["otros","📦 Otros"]
+  ]
+};
+const PERSONAS = ["Sebas","Natasha"];
+const TABS = [["gastos","Gastos","var(--rojo)"],["ingresos","Ingresos","var(--verde)"],["inversiones","Inversiones","var(--azul)"]];
+const MESES = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
+const KEY_URL = "finanzas:script-url";
+const KEY_PERFIL = "finanzas:perfil";
+// URL fija del Google Apps Script: la página conecta sola, sin pedir nada.
+const URL_FIJA = "https://script.google.com/macros/s/AKfycbwj4eFO8OejX-5bmXTEx2OiDhi2phKvDt6wMMkFBlQnBDSukGQ9BJs0UOMztlFQBWX7/exec";
+
+// ---------- Estado ----------
+let scriptURL = URL_FIJA || localStorage.getItem(KEY_URL) || "";
+let perfil = localStorage.getItem(KEY_PERFIL) || "";
+let data = { gastos: [], ingresos: [], inversiones: [] };
+let tab = "gastos";
+let moneda = "CRC";
+let persona = perfil; // siempre es el perfil elegido en este dispositivo
+let editandoId = null;
+const ahora = new Date();
+let mes = ahora.getMonth(), anio = ahora.getFullYear();
+
+const $ = (id) => document.getElementById(id);
+const hoyISO = () => new Date().toISOString().slice(0, 10);
+const fmt = (n, m) => (m === "USD" ? "$" : "₡") + (Number(n)||0).toLocaleString("es-CR",{maximumFractionDigits:2});
+const catLabel = (t, id) => { const c = CATEGORIAS[t].find(c => c[0] === id); return c ? c[1] : id; };
+const labelSinEmoji = (s) => s.replace(/^\S+\s/, "");
+
+// ---------- Sincronización con Google Sheets ----------
+function setSync(estado, texto) {
+  const el = $("sync");
+  el.className = "sync " + estado;
+  $("sync-texto").textContent = texto;
+}
+
+async function cargarDatos() {
+  mostrar("cargando");
+  try {
+    const res = await fetch(scriptURL);
+    const json = await res.json();
+    data = { gastos: json.gastos||[], ingresos: json.ingresos||[], inversiones: json.inversiones||[] };
+    tienePin = json.tienePin || {};
+    setSync("ok", "Sincronizado");
+    if (perfil) { mostrar("principal"); render(); }
+    else { mostrar("perfil-screen"); }
+  } catch (e) {
+    mostrar("setup");
+    $("setup-aviso").className = "aviso err";
+    $("setup-aviso").textContent = "No se pudo conectar con esa URL. Revisá que sea la que termina en /exec y que el acceso sea 'Cualquier persona'.";
+  }
+}
+
+let guardadoPendiente = null;
+async function guardarEnSheet() {
+  setSync("trabajando", "Guardando…");
+  const payload = {};
+  for (const t of ["gastos","ingresos","inversiones"]) {
+    payload[t] = data[t].map(m => {
+      const d = new Date(m.fecha + "T00:00:00");
+      return { ...m, anio: d.getFullYear(), mes: MESES[d.getMonth()], categoriaLabel: labelSinEmoji(catLabel(t, m.categoria)) };
+    });
+  }
+  try {
+    const res = await fetch(scriptURL, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify(payload)
+    });
+    const json = await res.json();
+    if (json.ok) setSync("ok", "Sincronizado");
+    else throw new Error(json.error);
+  } catch (e) {
+    setSync("error", "Error al guardar — reintentá");
+  }
+}
+
+// ---------- Acciones ----------
+function agregar() {
+  const valor = parseFloat($("f-monto").value);
+  const fecha = $("f-fecha").value;
+  if (!valor || valor <= 0 || !fecha) return;
+  const entrada = {
+    id: editandoId || Date.now() + "-" + Math.random().toString(36).slice(2,7),
+    fecha, monto: valor, moneda, persona,
+    categoria: $("f-categoria").value,
+    nota: $("f-nota").value.trim()
+  };
+  if (editandoId) data[tab] = data[tab].map(e => e.id === editandoId ? entrada : e);
+  else data[tab] = [entrada, ...data[tab]];
+  limpiarForm();
+  render();
+  guardarEnSheet();
+}
+
+function eliminar(id) {
+  if (!confirm("¿Eliminar este movimiento?")) return;
+  data[tab] = data[tab].filter(e => e.id !== id);
+  if (editandoId === id) limpiarForm();
+  render();
+  guardarEnSheet();
+}
+
+function editar(id) {
+  const e = data[tab].find(x => x.id === id);
+  if (!e) return;
+  editandoId = id;
+  $("f-fecha").value = e.fecha;
+  $("f-monto").value = e.monto;
+  $("f-categoria").value = e.categoria;
+  $("f-nota").value = e.nota || "";
+  setMoneda(e.moneda);
+  setPersona();
+  $("form-titulo").textContent = "Editar movimiento";
+  $("btn-agregar").textContent = "Guardar cambios";
+  $("btn-cancelar").classList.remove("oculto");
+  $("f-monto").focus();
+}
+
+function limpiarForm() {
+  editandoId = null;
+  $("f-fecha").value = hoyISO();
+  $("f-monto").value = "";
+  $("f-nota").value = "";
+  $("form-titulo").textContent = "Registrar " + (tab === "gastos" ? "gasto" : tab === "ingresos" ? "ingreso" : "inversión");
+  $("btn-agregar").textContent = "Agregar";
+  $("btn-cancelar").classList.add("oculto");
+}
+
+function repetirSalario() {
+  const ultimo = data.ingresos.find(e => e.categoria === "salario" && (e.persona || "") === perfil);
+  if (!ultimo) return;
+  $("f-categoria").value = "salario";
+  $("f-monto").value = ultimo.monto;
+  $("f-nota").value = ultimo.nota || "";
+  $("f-fecha").value = hoyISO();
+  setMoneda(ultimo.moneda);
+  setPersona();
+  $("f-monto").focus();
+}
+
+function cambiarMes(d) {
+  mes += d;
+  if (mes < 0) { mes = 11; anio--; }
+  if (mes > 11) { mes = 0; anio++; }
+  render();
+}
+
+function cambiarTab(t) {
+  tab = t;
+  llenarCategorias();
+  limpiarForm();
+  render();
+}
+
+function setMoneda(v) {
+  moneda = v;
+  document.querySelectorAll("#f-moneda button").forEach(b => b.classList.toggle("sel", b.dataset.v === v));
+}
+function setPersona(v) {
+  persona = perfil; // los movimientos siempre se registran a nombre del perfil activo
+}
+
+// ---------- Render ----------
+// Solo se muestran los movimientos del perfil activo en este dispositivo
+function misDatos(lista) {
+  return lista.filter(e => (e.persona || "") === perfil);
+}
+function delMes(lista) {
+  return misDatos(lista).filter(e => {
+    const d = new Date(e.fecha + "T00:00:00");
+    return d.getMonth() === mes && d.getFullYear() === anio;
+  });
+}
+
+function render() {
+  $("mes-label").textContent = MESES[mes] + " " + anio;
+  $("usuario-nombre").textContent = perfil;
+  const color = TABS.find(t => t[0] === tab)[2];
+  $("form-card").style.setProperty("--c", color);
+
+  // Tabs
+  $("tabs").innerHTML = TABS.map(([id, label, c]) =>
+    `<button class="tab ${id===tab?'activa':''}" style="--c:${c}" onclick="cambiarTab('${id}')">${label}</button>`
+  ).join("");
+
+  // Ledger
+  const tot = {};
+  for (const t of ["gastos","ingresos","inversiones"]) {
+    tot[t] = { CRC: 0, USD: 0 };
+    delMes(data[t]).forEach(e => tot[t][e.moneda] += e.monto);
+  }
+  const bal = { CRC: tot.ingresos.CRC - tot.gastos.CRC - tot.inversiones.CRC, USD: tot.ingresos.USD - tot.gastos.USD - tot.inversiones.USD };
+  $("ledger").innerHTML = [
+    ["Ingresos", tot.ingresos, "var(--verde)", ""], ["Gastos", tot.gastos, "var(--rojo)", ""],
+    ["Inversiones", tot.inversiones, "var(--azul)", ""], ["Balance", bal, "", "balance"]
+  ].map(([n, t, c, cls]) =>
+    `<div class="ledger-item ${cls}"><div class="ledger-label" style="color:${c}">${n}</div>
+     <div class="ledger-monto">${fmt(t.CRC,"CRC")}</div><div class="ledger-monto usd">${fmt(t.USD,"USD")}</div></div>`
+  ).join("");
+
+  // Botón salario
+  $("btn-salario").classList.toggle("oculto", !(tab === "ingresos" && !editandoId && data.ingresos.some(e => e.categoria === "salario" && (e.persona || "") === perfil)));
+
+  // Chips por categoría
+  const entradas = delMes(data[tab]);
+  const acc = {};
+  entradas.forEach(e => {
+    if (!acc[e.categoria]) acc[e.categoria] = { CRC: 0, USD: 0 };
+    acc[e.categoria][e.moneda] += e.monto;
+  });
+  const pares = Object.entries(acc).sort((a,b) => (b[1].CRC + b[1].USD*500) - (a[1].CRC + a[1].USD*500));
+  $("chips-card").classList.toggle("oculto", pares.length === 0);
+  $("chips-titulo").textContent = "Por categoría · " + MESES[mes];
+  $("chips").innerHTML = pares.map(([cat, t]) => {
+    const partes = [];
+    if (t.CRC > 0) partes.push(fmt(t.CRC,"CRC"));
+    if (t.USD > 0) partes.push(fmt(t.USD,"USD"));
+    return `<div class="chip"><span>${catLabel(tab, cat)}</span><strong>${partes.join(" · ")}</strong></div>`;
+  }).join("");
+
+  // Lista
+  $("lista-titulo").textContent = `Movimientos de ${MESES[mes]} (${entradas.length})`;
+  $("vacio").classList.toggle("oculto", entradas.length > 0);
+  $("vacio").textContent = `Todavía no hay ${tab} en ${MESES[mes].toLowerCase()}. Agregá el primero arriba.`;
+  $("lista").innerHTML = [...entradas].sort((a,b) => b.fecha.localeCompare(a.fecha)).map(e =>
+    `<li>
+      <div class="mov-fecha">${e.fecha.slice(8,10)}<small>/${e.fecha.slice(5,7)}</small></div>
+      <div class="mov-info">
+        <div class="mov-cat">${catLabel(tab, e.categoria)}</div>
+        ${e.nota ? `<div class="mov-nota">${e.nota.replace(/</g,"&lt;")}</div>` : ""}
+      </div>
+      <div class="mov-monto" style="color:${color}">${fmt(e.monto, e.moneda)}</div>
+      <div class="mov-btns">
+        <button onclick="editar('${e.id}')" aria-label="Editar">✎</button>
+        <button onclick="eliminar('${e.id}')" aria-label="Eliminar">✕</button>
+      </div>
+    </li>`
+  ).join("");
+}
+
+function llenarCategorias() {
+  $("cat-label").textContent = tab === "gastos" ? "Tipo de gasto" : tab === "ingresos" ? "Tipo de ingreso" : "Tipo de inversión";
+  $("f-categoria").innerHTML = CATEGORIAS[tab].map(([id, l]) => `<option value="${id}">${l}</option>`).join("");
+}
+
+// ---------- Configuración de URL ----------
+function mostrar(id) {
+  ["perfil-screen","pin-screen","setup","cargando","principal"].forEach(x => $(x).classList.toggle("oculto", x !== id));
+}
+function abrirConfig() {
+  $("input-url").value = scriptURL;
+  $("setup-aviso").textContent = "";
+  mostrar("setup");
+}
+function guardarURL() {
+  const url = $("input-url").value.trim();
+  if (!url.startsWith("https://script.google.com/")) {
+    $("setup-aviso").className = "aviso err";
+    $("setup-aviso").textContent = "La URL debe empezar con https://script.google.com/ y terminar en /exec.";
+    return;
+  }
+  scriptURL = url;
+  localStorage.setItem(KEY_URL, url);
+  cargarDatos();
+}
+
+// ---------- Inicio ----------
+document.querySelectorAll("#f-moneda button").forEach(b => b.onclick = () => setMoneda(b.dataset.v));
+$("perfiles").innerHTML = PERSONAS.map(p => `<button class="perfil-btn" onclick="elegirPerfil('${p}')">${p}</button>`).join("");
+
+let tienePin = {};        // {Sebas: true, ...} — viene del Sheet
+let perfilPendiente = ""; // perfil elegido, a la espera del PIN
+let modoPin = "crear";    // "crear" o "verificar"
+
+async function hashPin(pin) {
+  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode("finanzas:" + pin));
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, "0")).join("");
+}
+
+function elegirPerfil(p) {
+  perfilPendiente = p;
+  modoPin = tienePin[p] ? "verificar" : "crear";
+  $("pin-titulo").textContent = modoPin === "crear" ? `Hola ${p}, creá tu PIN` : `Hola ${p}`;
+  $("pin-texto").textContent = modoPin === "crear"
+    ? "Es la primera vez que entrás. Elegí un PIN de 4 a 6 dígitos: lo vas a usar para entrar a tu perfil desde otros dispositivos."
+    : "Ingresá tu PIN para ver tu perfil.";
+  $("pin-2-wrap").classList.toggle("oculto", modoPin !== "crear");
+  $("pin-1").value = ""; $("pin-2").value = "";
+  $("pin-aviso").textContent = "";
+  mostrar("pin-screen");
+  $("pin-1").focus();
+}
+
+async function confirmarPin() {
+  const p1 = $("pin-1").value.trim();
+  const aviso = $("pin-aviso");
+  if (!/^[0-9]{4,6}$/.test(p1)) {
+    aviso.className = "aviso err";
+    aviso.textContent = "El PIN debe tener entre 4 y 6 dígitos (solo números).";
+    return;
+  }
+  if (modoPin === "crear" && p1 !== $("pin-2").value.trim()) {
+    aviso.className = "aviso err";
+    aviso.textContent = "Los PIN no coinciden. Intentá de nuevo.";
+    return;
+  }
+  $("pin-btn").disabled = true;
+  aviso.className = "aviso";
+  aviso.textContent = "Verificando…";
+  try {
+    const hash = await hashPin(p1);
+    const res = await fetch(scriptURL, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify({ action: modoPin === "crear" ? "setPin" : "checkPin", persona: perfilPendiente, pinHash: hash })
+    });
+    const json = await res.json();
+    if (json.ok) {
+      if (modoPin === "crear") tienePin[perfilPendiente] = true;
+      entrarConPerfil(perfilPendiente);
+    } else {
+      aviso.className = "aviso err";
+      aviso.textContent = modoPin === "crear"
+        ? (json.error || "No se pudo crear el PIN.")
+        : "PIN incorrecto. Intentá de nuevo.";
+    }
+  } catch (e) {
+    aviso.className = "aviso err";
+    aviso.textContent = "Error de conexión. Intentá de nuevo.";
+  }
+  $("pin-btn").disabled = false;
+}
+
+function entrarConPerfil(p) {
+  perfil = p;
+  persona = p;
+  localStorage.setItem(KEY_PERFIL, p);
+  mostrar("principal");
+  render();
+}
+
+function cambiarPerfil() {
+  localStorage.removeItem(KEY_PERFIL);
+  perfil = "";
+  mostrar("perfil-screen");
+}
+$("f-monto").addEventListener("keydown", e => e.key === "Enter" && agregar());
+$("f-nota").addEventListener("keydown", e => e.key === "Enter" && agregar());
+$("pin-1").addEventListener("keydown", e => e.key === "Enter" && confirmarPin());
+$("pin-2").addEventListener("keydown", e => e.key === "Enter" && confirmarPin());
+llenarCategorias();
+limpiarForm();
+
+if (scriptURL) cargarDatos();
+else mostrar("setup");
+</script>
+</body>
+</html>
